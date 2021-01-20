@@ -113,7 +113,7 @@ def kmeans(X, k, init="random"):
     Output:
         (y_new, centers)
         y_new: an array of shape (N,)  
-            that records the labels of each sample (0, ..., k-1)
+            that records the labels in (0, ..., k-1) of each sample 
         centers: an array of shape (k,d)  
             that records the cluster centers
             
