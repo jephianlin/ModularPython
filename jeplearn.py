@@ -13,8 +13,12 @@ def dist_mtx(X, Y=None):
         the matrix [d_ij] where d_ij is the distance between  
         the i-th row of X and the j-th row of Y
     """
-    if Y == None:
+    if isinstance(Y, np.ndarray):
+        pass
+    elif Y == None:
         Y = X.copy()
+    else:
+        raise TypeError("Y should be a NumPy array or None") 
     X_col = X[:, np.newaxis, :]
     Y_row = Y[np.newaxis, :, :]
     diff = X_col - Y_row
