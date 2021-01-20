@@ -1,6 +1,7 @@
 import numpy as np
 from scipy import linalg as LA
 
+
 def dist_mtx(X, Y=None):
     """Return the distance matrix between rows of X and rows of Y
     
@@ -25,7 +26,8 @@ def dist_mtx(X, Y=None):
     dist = np.sqrt(np.sum(diff**2, axis=-1))
     return dist
 
-def PCA(X, r=2):
+
+def pca(X, r=2):
     """PCA dimensionality reduction  
     
     Input:  
@@ -51,7 +53,8 @@ def PCA(X, r=2):
     U = vecs[:,::-1] ### from large to small
     return X.dot(U)
 
-def MDS(X, r=2, n_iter=100, verbose=0):
+
+def mds(X, r=2, n_iter=100, verbose=0):
     """MDS dimensionality reduction
     
     Input:  
@@ -95,3 +98,58 @@ def MDS(X, r=2, n_iter=100, verbose=0):
             print("Iter %3d: stress = %f"%(k, stress))
             
     return Xk
+
+
+def kmeans(X, k, init="random"):
+    """
+    Input:  
+        X: an array of shape (N,d)  
+            rows for samples and columns for features
+        k: number of clusters
+        init: "random" or an array of shape (k,d)
+            if "random", k points are chosen randomly from X as the initial cluster centers  
+            if an array, the array is used as the initial cluster centers
+        
+    Output:
+        (y_new, centers)
+        y_new: an array of shape (N,)  
+            that records the labels of each sample (0, ..., k-1)
+        centers: an array of shape (k,d)  
+            that records the cluster centers
+            
+    Example:
+        mu = np.array([3,3])
+        cov = np.eye(2)
+        X = np.vstack([np.random.multivariate_normal(mu, cov, 100), 
+                       np.random.multivariate_normal(-mu, cov, 100)])
+        y_new,centers = kmeans(X, 2)
+    """
+    N,d = X.shape
+    
+    ### initialize y and center
+    if isinstance(init, np.ndarray):
+        centers = init.copy()
+    elif init == "random":
+        inds = np.random.choice(np.arange(N), k, replace=False)
+        centers = X[inds, :]
+    else:
+        raise TypeError("init can only be a NumPy array or 'random'")
+
+    dist = dist_mtx(X, centers)
+    y_new = dist.argmin(axis=1)
+    
+    while True:        
+        ### compute the new centers
+        for i in range(k):
+            mask = (y_new == i)
+            centers[i] = X[mask].mean(axis=0)
+        
+        ### generate the new y_new
+        dist = dist_mtx(X, centers)
+        y_last = y_new.copy()
+        y_new = dist.argmin(axis=1)
+        
+        if np.all(y_last == y_new):
+            break
+
+    return y_new, centers
