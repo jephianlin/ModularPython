@@ -27,6 +27,20 @@ def dist_mtx(X, Y=None):
     return dist
 
 
+def inertia(X, labels, centers):
+    """Return the inertia of X corresponding to its labels and cluster centers
+    
+    Input:
+        X: an array of shape (N,d)
+        labels: an array of shape (N,)  
+            that records the labels in (0, ..., k-1) of each sample 
+        centers: an array of shape (k,d)  
+            that records the cluster centers
+    """
+    k = centers.shape[0]
+    return sum(np.sum((X[labels==i,:] - centers[i])**2)  for i in range(k))
+
+
 def pca(X, r=2):
     """PCA dimensionality reduction  
     
