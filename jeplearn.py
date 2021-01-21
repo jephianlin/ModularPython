@@ -115,7 +115,8 @@ def mds(X, r=2, n_iter=100, verbose=0):
 
 
 def kmeans(X, k, init="random"):
-    """
+    """k-means clustering algorithm
+    
     Input:  
         X: an array of shape (N,d)  
             rows for samples and columns for features
@@ -167,3 +168,69 @@ def kmeans(X, k, init="random"):
             break
 
     return y_new, centers
+
+
+def dbscan(X, eps, min_samples, draw=False):
+    """DBSCAN clustering algorithm
+    
+    Input:  
+        X: an array of shape (N,d)  
+            rows for samples and columns for features
+        eps: the radius used for finding neighborhood
+        min_samples: a sample is considered as a core sample  
+            if its epsilon-ball contains at least `min_sample` samples  
+            (including itself)
+        draw: boolean, return a illustrative figure or not
+
+    Output:
+        `(y_new, core_indices, fig)`  or `(y_new, core_indices)` depending on `draw` or not
+        y_new: an array of shape (N,)  
+            that records the labels in of each sample, where -1 stands for a noise 
+        core_indices: an array of shape (n_core_samples,) that stores the indices of the core samples
+        fig: an illustrative figure showing the data points, DFS tree, core samples, and noises
+
+    Example:
+        mu = np.array([3,3])
+        cov = np.eye(2)
+        X = np.vstack([np.random.multivariate_normal(mu, cov, 100), 
+                       np.random.multivariate_normal(-mu, cov, 100)])
+        y_new,core_indices,fig = dbscan(X, 1, 5, draw=True)
+    """
+    N,d = X.shape
+    dist = dist_mtx(X)
+    
+    ### find core samples
+    adj = (dist <= eps)
+    core_mask = (adj.sum(axis=1) >= min_samples)
+    core_indices = np.where(core_mask)[0]
+    nbrhoods = [np.where(adj[i])[0] for i in range(N)]
+    
+    ### Run DFS to label each vertex
+    y_new = -np.ones((N,), dtype=int)
+    label_num = 0
+    tree = []
+    for i in range(N):
+        if y_new[i] == -1 and core_mask[i]:
+            stack = [i]
+            while stack != []:
+                j = stack.pop()
+                if y_new[j] == -1:
+                    tree.append((i,j))
+                    y_new[j] = label_num
+                    if core_mask[j]:
+                        stack += list(nbrhoods[j])
+            label_num += 1
+    
+    if draw:
+        fig = plt.figure()
+        for i,j in tree:
+            plt.plot(*zip(X[i], X[j]), c='b', zorder=-1)
+        plt.scatter(X[:,0], X[:,1], c=y_new, cmap='viridis')
+        components = X[core_indices, :]
+        plt.scatter(components[:,0], components[:,1], c='r', s=10)
+        noise = X[y_new == -1]
+        plt.scatter(noise[:,0], noise[:,1], c='k', s=100, marker='x')
+        plt.close()
+        return y_new, core_indices, fig
+    
+    return y_new, core_indices
