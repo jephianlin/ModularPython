@@ -237,7 +237,7 @@ def dbscan(X, eps, min_samples, draw=False):
 
 
 def linearregression(X, y, fit_intercept=True, algorithm='projection', 
-                     alpha=0.01, n_iter=1000, regulation=None, verbose=False):
+                     alpha=1, learning_rate=0.01, n_iter=1000, regulation=None, verbose=False):
     """Linear Regression algorithm
     
     Input:  
@@ -246,7 +246,8 @@ def linearregression(X, y, fit_intercept=True, algorithm='projection',
         y: the labels of shape (d,)
         fit_intercept: whether to calculate the intercept or not
         algorithm: "projction" or "grad_descent"
-        alpha: learning rate for the gradient descent algorithm
+        alpha: weight for the L1 or L2 regularization
+        learning_rate: learning rate for the gradient descent algorithm
         n_iter: number of iterations for the gradient descent algorithm 
 
     Output:
@@ -291,13 +292,13 @@ def linearregression(X, y, fit_intercept=True, algorithm='projection',
             if regulation == None:
                 grad_reg = np.zeros_like(grad)
             elif regulation == "l1":
-                grad_reg = v * np.sign(v, dtype=float)
+                grad_reg = alpha * v * np.sign(v, dtype=float)
             elif regulation == "l2":
-                grad_reg = 2 * v
+                grad_reg = alpha * 2 * v
             else:
                 raise TypeError("invalid input for regulation keyword")
             
-            v -= alpha * (grad + grad_reg)
+            v -= learning_rate * (grad + grad_reg)
             if verbose:
                 mse = np.mean(diff**2)
                 print("Iter %3d: mes = %f"%(_, mse))
