@@ -183,7 +183,7 @@ def dbscan(X, eps, min_samples, draw=False):
         draw: boolean, return a illustrative figure or not
 
     Output:
-        `(y_new, core_indices, fig)`  or `(y_new, core_indices)` depending on `draw` or not
+        (y_new, core_indices, fig)  or (y_new, core_indices) depending on draw or not
         y_new: an array of shape (N,)  
             that records the labels in of each sample, where -1 stands for a noise 
         core_indices: an array of shape (n_core_samples,) that stores the indices of the core samples
@@ -234,3 +234,80 @@ def dbscan(X, eps, min_samples, draw=False):
         return y_new, core_indices, fig
     
     return y_new, core_indices
+
+
+def linearregression(X, y, fit_intercept=True, algorithm='projection', 
+                     alpha=0.01, n_iter=1000, regulation=None, verbose=False):
+    """Linear Regression algorithm
+    
+    Input:  
+        X: an array of shape (N,d)  
+            rows for samples and columns for features
+        y: the labels of shape (d,)
+        fit_intercept: whether to calculate the intercept or not
+        algorithm: "projction" or "grad_descent"
+        alpha: learning rate for the gradient descent algorithm
+        n_iter: number of iterations for the gradient descent algorithm 
+
+    Output:
+        (predict, coefs, intercep)
+        predict: a function that can takes some samples X_test and  
+            return the prediction X_test.dot(coefs) + intercept 
+        coef: an array of shape (d,) that stores the coefficients
+        intercept: a float for the intercept
+
+    Example:
+        x = np.arange(10)
+        X = np.vstack([x]).T
+        y = 0.5 * x + 3 + 0.3*np.random.randn(10)
+        predict,coef,intercept = linearregression(X, y, algorithm="grad_descent", 
+                                                  alpha=0.03, regulation=None, verbose=True)
+        y_new = predict(X_sample)
+    """
+    N,d = X.shape    
+    if fit_intercept:
+        A = np.hstack([np.ones((N,1)), X])
+    else:
+        A = X.copy()
+    dp = A.shape[1]
+
+    if algorithm == "projection":
+        ATAinv = np.linalg.pinv(A.T.dot(A))
+        v = ATAinv.dot(A.T).dot(y)
+    
+    if algorithm == "grad_descent":
+        v = np.random.randn(dp)
+        if verbose:
+            mse = np.mean((A.dot(v) - y)**2)
+            print("Iter %3d: mes = %f"%(0, mse))
+        for _ in range(n_iter):
+            Av = A.dot(v)
+            ### before 1 / N
+            diff = Av - y ### (n_sample, ) as a row vector
+            ### now do 1 / N
+            grad = 1 / N * np.dot(2*diff, A)
+            
+            ### regulation gradient
+            if regulation == None:
+                grad_reg = np.zeros_like(grad)
+            elif regulation == "l1":
+                grad_reg = v * np.sign(v, dtype=float)
+            elif regulation == "l2":
+                grad_reg = 2 * v
+            else:
+                raise TypeError("invalid input for regulation keyword")
+            
+            v -= alpha * (grad + grad_reg)
+            if verbose:
+                mse = np.mean(diff**2)
+                print("Iter %3d: mes = %f"%(_, mse))
+    
+    if fit_intercept:
+        coef = v[1:]
+        intercept = v[0]
+    else:
+        coef = v.copy()
+        intercept = 0
+    
+    predict = lambda X: X.dot(coef) + intercept
+    return predict, coef, intercept
