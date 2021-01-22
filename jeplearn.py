@@ -237,13 +237,13 @@ def dbscan(X, eps, min_samples, draw=False):
 
 
 def linearregression(X, y, fit_intercept=True, algorithm='projection', 
-                     alpha=1, learning_rate=0.01, n_iter=1000, regulation=None, verbose=False):
+                     alpha=1, learning_rate=0.01, n_iter=1000, regularization=None, verbose=False):
     """Linear Regression algorithm
     
     Input:  
         X: an array of shape (N,d)  
             rows for samples and columns for features
-        y: the labels of shape (d,)
+        y: the labels of shape (N,)
         fit_intercept: whether to calculate the intercept or not
         algorithm: "projction" or "grad_descent"
         alpha: weight for the L1 or L2 regularization
@@ -262,7 +262,9 @@ def linearregression(X, y, fit_intercept=True, algorithm='projection',
         X = np.vstack([x]).T
         y = 0.5 * x + 3 + 0.3*np.random.randn(10)
         predict,coef,intercept = linearregression(X, y, algorithm="grad_descent", 
-                                                  alpha=0.03, regulation=None, verbose=True)
+                                                  learning_rate=0.03, regularization=None, verbose=True)
+        x_sample = np.linspace(0,10,20)
+        X_sample = x_sample[:,np.newaxis]
         y_new = predict(X_sample)
     """
     N,d = X.shape    
@@ -288,15 +290,15 @@ def linearregression(X, y, fit_intercept=True, algorithm='projection',
             ### now do 1 / N
             grad = 1 / N * np.dot(2*diff, A)
             
-            ### regulation gradient
-            if regulation == None:
+            ### regularization gradient
+            if regularization == None:
                 grad_reg = np.zeros_like(grad)
-            elif regulation == "l1":
-                grad_reg = alpha * v * np.sign(v, dtype=float)
-            elif regulation == "l2":
+            elif regularization == "L1":
+                grad_reg = alpha * np.sign(v, dtype=float)
+            elif regularization == "L2":
                 grad_reg = alpha * 2 * v
             else:
-                raise TypeError("invalid input for regulation keyword")
+                raise TypeError("invalid input for regularization keyword")
             
             v -= learning_rate * (grad + grad_reg)
             if verbose:
@@ -310,5 +312,33 @@ def linearregression(X, y, fit_intercept=True, algorithm='projection',
         coef = v.copy()
         intercept = 0
     
-    predict = lambda X: X.dot(coef) + intercept
+    predict = lambda X_test: X_test.dot(coef) + intercept
+    return predict, coef, intercept
+
+def polynomialregression(X, y, degree=2, **kwargs):
+    """Polynomial Regression algorithm
+    
+    Input:  
+        X: an array of shape (N,1)  
+            rows for samples and columns for features
+        y: the labels of shape (N,)
+        degree: the degree of the polynomial 
+        **kwargs: keywords for linearregression function
+
+    Output:
+        output of linearregression function
+
+    Example:
+        x = np.arange(10)
+        y = 0.1*x**2 + 0.2*x + 0.3 + 0.5*np.random.randn(10)
+        X = x[:,np.newaxis]
+        predict,coef,intercept = jeplearn.polynomialregression(X, y, algorithm="grad_descent", 
+                                                               learning_rate=0.0001, regularization=None, verbose=True)
+        x_sample = np.linspace(0,10,20)
+        X_sample = x_sample[:,np.newaxis]
+        y_new = predict(X_sample)
+    """
+    X_ex = X**np.arange(1, degree+1)
+    predict_lin,coef,intercept = linearregression(X_ex, y, **kwargs)
+    predict = lambda X_test: (X_test**np.arange(1, degree+1)).dot(coef) + intercept
     return predict, coef, intercept
