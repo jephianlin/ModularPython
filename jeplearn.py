@@ -1,6 +1,8 @@
 import numpy as np
 from scipy import linalg as LA
 
+### for knn
+from sklearn.neighbors import NearestNeighbors
 
 def dist_mtx(X, Y=None):
     """Return the distance matrix between rows of X and rows of Y
