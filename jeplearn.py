@@ -342,3 +342,52 @@ def polynomial_regression(X, y, degree=2, **kwargs):
     predict_lin,coef,intercept = linear_regression(X_ex, y, **kwargs)
     predict = lambda X_test: (X_test**np.arange(1, degree+1)).dot(coef) + intercept
     return predict, coef, intercept
+
+
+def knn(X, y, k=5, algorithm='brute'):
+    """k-nearest neighbors classification algorithm
+    
+    Input:  
+        X: an array of shape (N,d)  
+            rows for samples and columns for features
+        y: the labels of shape (N,)
+        k: numbers of neighbors (including self) to vote
+        algorithm: `'brute'`, `'ball_tree'`, or `'kd_tree'`
+
+    Output:
+        (predict, k_nearest_neighbors)  
+        predict: a function that takes data X_sample and output their predicted labels
+        k_nearest_neighbors: a function that takes data X_sample and  
+            eturn the indices of the nearest neighbors in X
+
+    Example:
+        X = np.vstack([np.random.randn(50,2) + np.array([3,3]), 
+                       np.random.randn(50,2) - np.array([3,3])])
+        y = np.array([0]*50 + [1]*50)
+        X_sample = np.random.randn(5,2)
+        predict,nbrs = knn(X, y, k=5, algorithm='brute')
+        y_new = predict(X_sample)
+    """
+    N,d = X.shape
+    classes = np.unique(y)
+    
+    if algorithm=="brute":
+        def k_nearest_neighbors(X_sample):
+            dist = dist_mtx(X_sample, X)
+            argp = dist.argpartition(k-1)
+            return argp[:,:k]
+    elif algorithm in ["ball_tree", "kd_tree"]:
+        def k_nearest_neighbors(X_sample):
+            nbr = NearestNeighbors(n_neighbors=k, algorithm=algorithm)
+            nbr.fit(X)
+            return nbr.kneighbors(X_sample, return_distance=False)
+    else:
+        raise TypeError("invalid input for the algorithm keyword")
+        
+    def predict(X_sample):
+        nbrhoods = k_nearest_neighbors(X_sample)
+        votes = y[nbrhoods]
+        count = (votes[:,:,np.newaxis] == classes).sum(axis=1)
+        y_new = classes[count.argmax(axis=1)]
+        return y_new
+    return predict, k_nearest_neighbors
