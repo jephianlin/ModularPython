@@ -114,7 +114,7 @@ def mds(X, r=2, n_iter=100, verbose=0):
     return Xk
 
 
-def kmeans(X, k, init="random"):
+def k_means(X, k, init="random"):
     """k-means clustering algorithm
     
     Input:  
@@ -137,7 +137,7 @@ def kmeans(X, k, init="random"):
         cov = np.eye(2)
         X = np.vstack([np.random.multivariate_normal(mu, cov, 100), 
                        np.random.multivariate_normal(-mu, cov, 100)])
-        y_new,centers = kmeans(X, 2)
+        y_new,centers = k_means(X, 2)
     """
     N,d = X.shape
     
@@ -236,7 +236,7 @@ def dbscan(X, eps, min_samples, draw=False):
     return y_new, core_indices
 
 
-def linearregression(X, y, fit_intercept=True, algorithm='projection', 
+def linear_regression(X, y, fit_intercept=True, algorithm='projection', 
                      alpha=1, learning_rate=0.01, n_iter=1000, regularization=None, verbose=False):
     """Linear Regression algorithm
     
@@ -261,7 +261,7 @@ def linearregression(X, y, fit_intercept=True, algorithm='projection',
         x = np.arange(10)
         X = np.vstack([x]).T
         y = 0.5 * x + 3 + 0.3*np.random.randn(10)
-        predict,coef,intercept = linearregression(X, y, algorithm="grad_descent", 
+        predict,coef,intercept = linear_regression(X, y, algorithm="grad_descent", 
                                                   learning_rate=0.03, regularization=None, verbose=True)
         x_sample = np.linspace(0,10,20)
         X_sample = x_sample[:,np.newaxis]
@@ -315,7 +315,7 @@ def linearregression(X, y, fit_intercept=True, algorithm='projection',
     predict = lambda X_test: X_test.dot(coef) + intercept
     return predict, coef, intercept
 
-def polynomialregression(X, y, degree=2, **kwargs):
+def polynomial_regression(X, y, degree=2, **kwargs):
     """Polynomial Regression algorithm
     
     Input:  
@@ -323,22 +323,22 @@ def polynomialregression(X, y, degree=2, **kwargs):
             rows for samples and columns for features
         y: the labels of shape (N,)
         degree: the degree of the polynomial 
-        **kwargs: keywords for linearregression function
+        **kwargs: keywords for linear_regression function
 
     Output:
-        output of linearregression function
+        output of linear_regression function
 
     Example:
         x = np.arange(10)
         y = 0.1*x**2 + 0.2*x + 0.3 + 0.5*np.random.randn(10)
         X = x[:,np.newaxis]
-        predict,coef,intercept = jeplearn.polynomialregression(X, y, algorithm="grad_descent", 
+        predict,coef,intercept = jeplearn.polynomial_regression(X, y, algorithm="grad_descent", 
                                                                learning_rate=0.0001, regularization=None, verbose=True)
         x_sample = np.linspace(0,10,20)
         X_sample = x_sample[:,np.newaxis]
         y_new = predict(X_sample)
     """
     X_ex = X**np.arange(1, degree+1)
-    predict_lin,coef,intercept = linearregression(X_ex, y, **kwargs)
+    predict_lin,coef,intercept = linear_regression(X_ex, y, **kwargs)
     predict = lambda X_test: (X_test**np.arange(1, degree+1)).dot(coef) + intercept
     return predict, coef, intercept
