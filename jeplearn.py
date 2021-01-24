@@ -354,13 +354,13 @@ def knn(X, y, k=5, algorithm='brute'):
             rows for samples and columns for features
         y: the labels of shape (N,)
         k: numbers of neighbors (including self) to vote
-        algorithm: `'brute'`, `'ball_tree'`, or `'kd_tree'`
+        algorithm: 'brute', 'ball_tree', or 'kd_tree'
 
     Output:
         (predict, k_nearest_neighbors)  
         predict: a function that takes data X_sample and output their predicted labels
         k_nearest_neighbors: a function that takes data X_sample and  
-            eturn the indices of the nearest neighbors in X
+            return the indices of the nearest neighbors in X
 
     Example:
         X = np.vstack([np.random.randn(50,2) + np.array([3,3]), 
@@ -393,3 +393,128 @@ def knn(X, y, k=5, algorithm='brute'):
         y_new = classes[count.argmax(axis=1)]
         return y_new
     return predict, k_nearest_neighbors
+
+
+def decision_tree(X, y, criteria="gini"):
+    """Decision tree classification algorithm
+    
+    Input:  
+        X: an array of shape (N,d)  
+            rows for samples and columns for features
+        y: the labels of shape (N,)
+        criterion: "gini" or "entropy"
+
+    Output:
+        (predict, tree)
+        predict: a function that takes data X_sample and output their predicted labels
+        tree: a dictionary that contains the information same as those in model.tree_
+
+    Example:
+        mu = np.array([1,1])
+        cov = np.array([[1.1,-1],
+                        [-1,1.1]])
+        X = np.vstack([np.random.multivariate_normal(mu, cov, 100), 
+                       np.random.multivariate_normal(-mu, cov, 100)])
+        y = np.array([0]*100 + [1]*100)
+
+        X_sample = 2*np.random.randn(1000,2) - np.array([1,1])
+        predict,tree = decision_tree(X, y, criteria="gini")
+        y_new = predict(X_sample)
+    """
+    N,d = X.shape
+    classes = np.unique(y)
+    
+    def impurity(arr):
+        dtrib = np.unique(arr, return_counts=True)[1]
+        dtrib = dtrib / dtrib.sum()
+        if criteria == "gini":
+            return np.sum(dtrib * (1 - dtrib))
+        if criteria == "entropy":
+            return np.sum(-dtrib * np.log2(dtrib))
+    
+    ### every sample are in node 0
+    node = np.zeros((N,), dtype=int)
+    
+    queue = [0]
+    node_count = 0 ### index of the last existing node
+    
+    tree = {"children_left": [], 
+            "children_right": [], 
+            "feature": [], 
+            "threshold": [], 
+            "n_node_samples": [],
+            "impurity": []}
+    
+    while queue != []:
+        k = queue[0]
+        queue.remove(k)
+        
+        ### all samples in node k
+        mask_U = (node == k)
+        U = X[mask_U]
+        y_U = y[mask_U]
+        NU = U.shape[0]
+        
+        imp = impurity(y_U)
+        tree["impurity"].append(imp)
+        tree["n_node_samples"].append(NU)
+        if imp == 0:
+            tree["children_left"].append(-1)
+            tree["children_right"].append(-1)
+            tree["feature"].append(-2)
+            tree["threshold"].append(-1)
+            continue
+        
+        Iprime = np.zeros_like(U)
+        ### calculate the Iprime for each cut
+        for j in range(d):
+            for i in range(NU):
+                mask = (U[:,j] <= U[i,j])
+                NL, NR = mask.sum(), (~mask).sum()
+                HL = impurity(y_U[mask])
+                HR = impurity(y_U[~mask])
+                Iprime[i,j] = (NL*HL + NR*HR) / NU
+
+        ### note here i and j are specific choices
+        ind = Iprime.argmin()
+        i,j = ind//d, ind%d
+        mask = (U[:,j] <= U[i,j])
+        ### the following syntax does not change node itself
+        ### Use np.where instead
+        #  node[mask_U][mask] = node_count + 1
+        #  node[mask_U][~mask] = node_count + 2
+
+        inds = np.where(mask_U)[0]
+        node[inds[mask]] = node_count + 1
+        node[inds[~mask]] = node_count + 2
+        queue += [node_count + 1, node_count +2]
+
+        tree["children_left"].append(node_count + 1)
+        tree["children_right"].append(node_count + 2)
+        tree["feature"].append(j)
+        tree["threshold"].append(U[i,j])
+                
+        node_count += 2
+        
+    def predict(X_sample):
+        n_nodes = len(tree["children_left"])
+        ### array of shape (n_nodes,) 
+        ### consisting of the class number  
+        ### or -3 if not leaf (-3 is just for debugging)
+        node_to_class = -3*np.ones((n_nodes,), dtype=int)
+        for v in range(n_nodes):
+            if tree["children_left"][v] == -1:
+                node_to_class[v] = classes[np.bincount(y[node==v]).argmax()]
+                
+        node_sample = np.zeros((X_sample.shape[0],), dtype=int)
+
+        for v in range(n_nodes):
+            if tree["children_left"][v] == -1:
+                continue
+            inds = np.where(node_sample == v)[0]
+            mask = (X_sample[inds][:, tree["feature"][v]] <= tree["threshold"][v])
+            node_sample[inds[mask]] = tree["children_left"][v] 
+            node_sample[inds[~mask]] = tree["children_right"][v]
+        return node_to_class[node_sample]
+        
+    return predict, tree
