@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot at plt
 from scipy import linalg as LA
 
 ### for knn
